@@ -1,0 +1,214 @@
+SERVER ========================
+#define WIN32_LEAN_AND_MEAN
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <iostream>
+#include <string>
+#pragma comment(lib, "ws2_32.lib")
+
+using namespace std;
+
+int main() {
+    setlocale(LC_ALL, "RU");
+    SOCKET serverSocket= INVALID_SOCKET;
+    SOCKET acceptSocket = INVALID_SOCKET;
+    
+    int port = 5555;
+    WSADATA wsaData;
+    int wsaerr;
+    WORD wVersionRequested = MAKEWORD(2, 2);
+
+    wsaerr = WSAStartup(wVersionRequested, &wsaData);
+    if (wsaerr != 0) {
+        cout << "Ошибка WSAStartup: " << wsaerr << endl;
+        return 1;
+    }
+    cout << "WSAStartup OK, статус: " << wsaData.szSystemStatus << endl;
+
+    cout << "==== Step 2 - Поднимаем сокет ====" << endl;
+    serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (serverSocket == INVALID_SOCKET) {
+        cout << "Ошибка сокета: " << WSAGetLastError() << endl;
+        WSACleanup();
+        return 1;
+    }
+    cout << "Сокет в порядке" << endl;
+
+    cout << "==== Step 3 - Биндим сокет ====" << endl;
+    sockaddr_in service{};
+    service.sin_family = AF_INET;
+    service.sin_port = htons(port);
+    InetPtonA(AF_INET, "127.0.0.1", &service.sin_addr);
+
+    if (bind(serverSocket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR) {
+        cout << "Ошибка bind: " << WSAGetLastError() << endl;
+        closesocket(serverSocket);
+        WSACleanup();
+        return 1;
+    }
+    cout << "bind OK" << endl;
+
+    cout << "=== Step 4 - Слушаем ===" << endl;
+    if (listen(serverSocket, 1) == SOCKET_ERROR) {
+        cout << "Ошибка listen: " << WSAGetLastError() << endl;
+        closesocket(serverSocket);
+        WSACleanup();
+        return 1;
+    }
+    cout << "listen OK. Ждём клиента на 127.0.0.1:" << port << endl;
+
+    cout << "=== Step 5 - accept ===" << endl;
+    serverSocket = accept(serverSocket, NULL, NULL);
+    if (serverSocket == INVALID_SOCKET) {
+        cout << "accept failed: " << WSAGetLastError() << endl;
+        closesocket(serverSocket);
+        WSACleanup();
+        return 1;
+    }
+    cout << "Клиент подключился!" << endl;
+
+    // Читаем данные
+  
+
+    cout << "===step 6 =====" << endl;
+
+
+    while (true)
+    {
+
+
+        char buffserve[200] = { 0 };
+
+        auto op = recv(serverSocket, buffserve, 200, 0);
+
+        cout << endl << "message from client = " << op << endl;
+
+        if (op > 0)
+        {
+            cout << "Сообщение получено:" << buffserve << endl << endl << "================";
+        }
+
+    }
+
+    //closesocket(acceptSocket);
+    //closesocket(serverSocket);
+    WSACleanup();
+
+    system("pause");
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+CLIENT==========================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ #define _WIN32_WINNT 0x0601
+#include <iostream>
+#include <cstring>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+
+using namespace std;
+
+int main() {
+    setlocale(LC_ALL, "RU");
+
+    WSADATA w;
+    int err = WSAStartup(MAKEWORD(2, 2), &w);
+    if (err != 0) {
+        cout << "WSAStartup failed: " << err << endl;
+        system("pause");
+        return 1;
+    }
+    cout << "WSAStartup OK: " << w.szSystemStatus << endl;
+
+    SOCKET c = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (c == INVALID_SOCKET) {
+        cout << "socket failed: " << WSAGetLastError() << endl;
+        WSACleanup();
+        system("pause");
+        return 1;
+    }
+
+    sockaddr_in a{};
+    a.sin_family = AF_INET;
+    a.sin_port = htons(5555);
+    InetPtonA(AF_INET, "127.0.0.1", &a.sin_addr);
+
+    cout << "Connecting to 127.0.0.1:5555..." << endl;
+    if (connect(c, (SOCKADDR*)&a, sizeof(a)) == SOCKET_ERROR) {
+        int e = WSAGetLastError();
+        cout << "connect failed: " << e << endl;
+        if (e == 10061) cout << "  -> сервер не запущен или не слушает порт" << endl;
+        if (e == 10060) cout << "  -> таймаут (файрвол?)" << endl;
+        closesocket(c);
+        WSACleanup();
+        system("pause");
+        return 1;
+    }
+    cout << "Connected!" << endl;
+
+    const char* msg = "Hello from client";
+    int sent = send(c, msg, (int)strlen(msg), 0);
+    if (sent == SOCKET_ERROR) {
+        cout << "send failed: " << WSAGetLastError() << endl;
+    }
+    else {
+        cout << "Sent bytes: " << sent << endl;
+    }
+
+    cout << "===== step 4 =====" << endl;
+
+    while (true) {
+
+        char buffer[200] = { 0 };
+
+        cout << "Введите сообщение для отправки на сервер:";
+        cin.getline(buffer, 200);
+
+        auto bytesend = send(c, buffer, 200, 0);
+
+
+
+
+
+        if (bytesend > 200)
+        {
+            cout << "Счетчик больше разрешаемого обьема";
+        }
+        else
+        {
+            cout << "Your message: " << buffer << endl;
+        }
+
+
+        cout << "==== step 5 ======" << endl;
+    }
+
+    //closesocket(c);
+    WSACleanup();
+    system("pause");
+    return 0;
+}
